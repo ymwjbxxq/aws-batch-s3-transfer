@@ -1,29 +1,15 @@
-# README #
+# Use AWS Batch to copy file from S3 to S3 #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This example show how to setup aws batch to run a container that will move files between two S3 buckets.
 
-### What is this repository for? ###
+### Assumptions? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* You should already have [Fsx](https://aws.amazon.com/fsx/) or [EFS](https://aws.amazon.com/efs/)
+* You should already have the VPC in place
+* You should already have the AMI with the scripts
 
-### How do I get set up? ###
+### Why? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+Because lambda timeout after 15 minutes, imagine that you want to move files from A to B and this process takes more than 15 minutes.
+The [child_process](https://nodejs.org/api/child_process.html) allow you to call external programs in this case aws-cli but it could be anything. 
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
