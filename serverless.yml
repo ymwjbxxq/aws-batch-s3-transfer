@@ -1,0 +1,140 @@
+service: batch-service
+
+provider:
+  name: aws
+  region: ${opt:region, 'eu-central-1'}
+
+resources:
+  Resources:
+    # Roles
+    BatchAccessRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: xxxxx # set roleName
+        AssumeRolePolicyDocument: 
+          Version: '2012-10-17'
+          Statement:
+            -
+              Effect: Allow
+              Principal:
+                Service: 
+                  - 'ecs-tasks.amazonaws.com'
+              Action: 
+                - 'sts:AssumeRole'
+        Path: '/'
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess # least privalage is better
+
+    BatchServiceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: xxxxx # set roleName
+        AssumeRolePolicyDocument: 
+          Version: '2012-10-17'
+          Statement:
+            -
+              Effect: Allow
+              Principal:
+                Service: 
+                  - 'batch.amazonaws.com'
+              Action: 
+                - 'sts:AssumeRole'
+        Path: '/'
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole
+
+    BatchToAccessEcsRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: xxxxx # set roleName
+        AssumeRolePolicyDocument: 
+          Version: '2012-10-17'
+          Statement:
+            -
+              Effect: Allow
+              Principal:
+                Service: 
+                  - 'ec2.amazonaws.com'
+              Action: 
+                - 'sts:AssumeRole'
+        Path: '/'
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+          - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM # to access with AWS Systems Manager - Session Manager
+
+    BatchInstanceProfile:
+      Type: AWS::IAM::InstanceProfile
+      Properties: 
+        Path: /
+        Roles:
+          - Ref: BatchToAccessEcsRole
+        InstanceProfileName: xxxxx # set InstanceProfileName
+
+    # Batch ComputeEnvironment
+    BatchComputeEnvironment:
+      Type: AWS::Batch::ComputeEnvironment
+      Properties:
+        Type: MANAGED
+        State: ENABLED
+        ComputeEnvironmentName: xxxxx # set ComputeEnvironmentName
+        ServiceRole: 
+          Ref: BatchServiceRole
+        ComputeResources:
+          MinvCpus: 0
+          MaxvCpus: 100
+          DesiredvCpus: 1
+          ImageId:  xxxxx # set AMI ID
+          SecurityGroupIds:
+            - Fn::ImportValue: xxxx # securityGroup to access FSx or EFS
+            - Fn::ImportValue: xxxx # securityGroup to access the EC2
+          Subnets:
+            - Fn::ImportValue: xxxx # reference private subnet1
+            - Fn::ImportValue: xxxx # reference private subnet2
+            - Fn::ImportValue: xxxx # reference private subnet3
+          Type: EC2
+          InstanceRole: 
+            Ref: BatchInstanceProfile
+          Tags:
+            Name: my-super-batch
+
+    # Batch definiserverlesstion
+    BatchJobS3Definition:
+      Type: AWS::Batch::JobDefinition
+      Properties:
+        JobDefinitionName: xxxx # set JobDefinitionName
+        Type: container
+        ContainerProperties:
+          Image: ACCOUNT.dkr.ecr.eu-central-1.amazonaws.com/YOUT_IMAGE:latest
+          Vcpus: 2
+          Memory: 2048
+          Volumes:
+            - Name: "docker_scratch"
+              Host:
+                SourcePath: "/mountFolder"
+          MountPoints:
+            - SourceVolume: "docker_scratch"
+              ContainerPath: "/scratch"
+          JobRoleArn:
+            Ref: BatchAccessRole
+
+    BatchJobS3Queue:
+      Type: AWS::Batch::JobQueue
+      Properties:
+        ComputeEnvironmentOrder:
+          -
+            Order: 1 
+            ComputeEnvironment: 
+              Ref: BatchComputeEnvironment
+        Priority: 1
+        JobQueueName: xxxx # set JobQueueName
+
+  Outputs:
+    BatchComputeEnvironment:
+      Value:
+        Ref: BatchComputeEnvironment
+    BatchJobS3Queue:
+      Value:
+        Ref: BatchJobS3Queue
+    BatchJobS3Definition:
+      Value:
+        Ref: BatchJobS3Definition
