@@ -10,6 +10,5 @@ This example shows how to set up AWS Batch to run a container that will move fil
 
 ### Why? ###
 
-Because lambda timeout after 15 minutes, imagine that you want to move files from A to B and this process takes more than 15 minutes.
-The [child_process](https://nodejs.org/api/child_process.html) allows you to call external programs in this case aws-cli but it could be anything. 
-
+Because lambda timeout after 15 minutes, imagine that you want to move files from A to B, and this process takes more than 15 minutes.
+The [child_process](https://nodejs.org/api/child_process.html) allows you to call external programs, in this case, aws-cli, but it could be anything. 
